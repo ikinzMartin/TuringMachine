@@ -1,9 +1,8 @@
 import turing
 
-# This program replaces 1s by x until it meet '0'. All 1s are appended to the
-# end of data
+# This program detects whether the given word is a palindrome
 
-data = '1011'
+data = '1001'
 program = \
 """
 004_>
@@ -19,8 +18,10 @@ program = \
 4_5_<
 
 213_<
+2_x_>
 
 503_<
+5_x_>
 
 3131<
 3030<
