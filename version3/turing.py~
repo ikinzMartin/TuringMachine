@@ -1,4 +1,0 @@
-# We want to create a turing machine
-# A turing machine can be defined as a matrix :
-#  - The lines being the states that the turing machine has
-#  - The rows being the alphabet we are working on
