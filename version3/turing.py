@@ -48,11 +48,13 @@ turing_machine = \
 
 # So now in order to run this we can use the following algorithm
 
-def run_machine(turing_machine, tape, state, verbose=False):
+def run_machine(turing_machine, tape, state, verbose=False,limit=100000):
     head = 0 # initialize head
-    print("Input on tape: "+tape+"\n") # Print input initially
+    print("\nInput on tape: "+tape+"\n") # Print input initially
 
-    while (state != -1): # While not in the halt state
+    cntr=0
+    
+    while (state != -1 and cntr<limit): # While not in the halt state or exceeded interation limit
         #---------------------- Visualation
         if verbose: 
             print(tape)
@@ -63,6 +65,7 @@ def run_machine(turing_machine, tape, state, verbose=False):
         tape = tape[:head] + new_sym + tape[head+1:] # Writing the symbol
         head += 1 if mov == 'R' else -1 # Position the head accordingly
         state = new_state # Change state
+        cntr+=1
         
     print("Result on tape :\n"+tape)
     return tape
@@ -115,7 +118,7 @@ palindrome = {
                  }
 
 # In order to test it out :
-print("===========\nTesting palindrome\n==========");
+print("===========\nTesting palindrome\n==========")
 print("\nTest 1001")
 run_machine(palindrome, "1001", 0) # Should result in an empty tape
 print("\nTest 101")
@@ -124,15 +127,200 @@ print("\nTest 1101")
 run_machine(palindrome, "1101", 0) # should result in a non-empty tape
 
 
-# Addition
+# Unary addition
+# We will now program the unary addition
+# It is quite simple as our program will take a sequence of 1s followed by a
+# blank symbol then another sequence of 1s.
+# So for an input tape "111_11" we should recieve "11111".
+# Note : if a 0 if found the machine will exit exceptionally.
 
-# Reversing a tape
+unary_addition = {
+    0: {
+        '0': ('0',-1,None),
+        '1': ('1',0,'R'),
+        '_': ('1',1,'R')
+        },
+    1: {
+        '0': ('0',-1,None),
+        '1': ('1',1,'R'),
+        '_': ('_',2,'L')
+        },
+    2: {
+        '0': ('0',-1,None),
+        '1': ('_',-1,None), # The only transition that makes sense
+        '_': ('_',-1,None)
+        }
+    }
+
+# Testing it out:
+print("="*10 + "\nTesting Unary Addition\n" + "="*10)
+run_machine(unary_addition,"1_1",0) # Should result in "11"
+run_machine(unary_addition,"11_111",0) # Should result in "11111"
+
+# Binary increment
+# Here he will be constructing a TM that will increment a binary number
+# So the input tape would be a binary number
+# So for example if the machine recieves "1101" the result should be "1110"
+# Here are some example :
+# 0010++ = 0011, 00++ = 01, 011++ = 100
+# So we notice that increment is reading the number from right to left changing
+# all the 1s into 0s and the first 0 into a 1.
+# So we recieve the machine:
+# (Lets suppose that an this interaction exists machine("") -> ""
+
+binary_increment = {
+    0: {
+        '0': ('0',0,'R'),
+        '1': ('1',0,'R'),
+        '_': ('_',1,'L')
+        },
+    1: {
+        '0': ('1',-1,None),
+        '1': ('0',1,'L'),
+        '_': ('_',-1,None)
+        }
+    }
+
+# Lets test it out
+print("="*10 + "\nTesting binary increment\n" + "="*10)
+run_machine(binary_increment,"0",0) # Should result in "1"
+run_machine(binary_increment,"1100",0) # Should result in "1101"
+run_machine(binary_increment,"011",0) # Should result in "100"
+
+# Binary decrement
+# So using the same logic if we think about it we got the mirror
+# operation, that this time changes all the 0s into 1s before changing the
+# first 1 into a 0 from right to left again.
+
+binary_decrement = {
+    0: {
+        '0': ('0',0,'R'),
+        '1': ('1',0,'R'),
+        '_': ('_',1,'L')
+        },
+    1: {
+        '0': ('1',1,'L'),
+        '1': ('0',-1,None),
+        '_': ('_',-1,None)
+        }
+    }
+
+
+# Lets test it out
+print("="*10 + "\nTesting binary decrement\n" + "="*10)
+run_machine(binary_decrement,"1",0) # Should result in "0"
+run_machine(binary_decrement,"1100",0) # Should result in "1011"
+run_machine(binary_decrement,"011",0) # Should result in "010"
+
+# Binary addition
+# Now knowing how to increment and decrement, we should be able to program
+# addition simply by incrementing and decrementing successively
+
+binary_addition = {
+    0: {
+        '0': ('0',0,'R'),
+        '1': ('1',0,'R'),
+        '_': ('_',1,'R')
+        },
+    1: {
+        '0': ('0',1,'R'),
+        '1': ('1',2,'R'),
+        '_': ('_',-1,None)
+        },
+    2: {
+        '0': ('0',2,'R'),
+        '1': ('1',2,'R'),
+        '_': ('_',3,'L')
+        },
+    3: {
+        '0': ('1',3,'L'),
+        '1': ('0',4,'L'),
+        '_': ('_',-1,None) #This will never happen as we check if the number if zero beforehand
+        },
+    4: {
+        '0': ('0',4,'L'),
+        '1': ('1',4,'L'),
+        '_': ('_',5,'L')
+        },
+    5: {
+        '0': ('1',0,'R'),
+        '1': ('0',5,'L'),
+        '_': ('_',0,'R')
+        }
+    }
+
+
+# Lets test it out
+print("="*10 + "\nTesting binary addition\n" + "="*10)
+run_machine(binary_addition,"01_10",0) # Should result in "11" (1 + 2)
+run_machine(binary_addition,"001_011",0) # Should result in "100" (1 + 3)
+run_machine(binary_addition,"0110_0011",0) # Should result in "1001" (6 + 3)
 
 # Others ... ?
 
 ### Creating a random turing machine
+# Now that we have become a bit more conformtable with the idea of turing machines
+# and how they work, we will attempt to create a random turing machine!
+# As we now know what defines a turing machines is it's transitions, so in order to
+# create a random turing machine all we need to do is give a  certain number of
+# states that the machine will have, give a certain alphabet on which we will be working
+# and then simply fill the squares of our transition table, with random symbols
+
+# To start simple, let's say we will attempt to create a random 1-state turing machine, with the alphabet 0,1 and _ (blank symbol)
+alphabet = ('0','1','_')
+
+# A N-state turing machine, means that the machine has N non-halting state, meaning that there can be always be a halting state.
+
+# We use tuples as python's random module natively uses tuples
+# So now all that is left is to do is assign random transitions into a dictionary
+
+import random # we need this for the choice function
+
+def create_random_machine(n_states,alphabet):
+    random_machine = dict()# empty transition table
+    states = tuple(range(-1,n_states)) #This way we always include the -1 halting state
+    mov = ('L','R') # Left or Right
+    for state in range(n_states):
+        random_machine[state] = dict() # Necessary to initialize it
+        for alpha in alphabet:
+            random_machine[state][alpha] = (random.choice(alphabet), # choosing random letter to write
+                                            random.choice(states), # choosing a random state to transition to
+                                            random.choice(mov) # choosing a random movement
+                                            )
+    return random_machine
+
+# Running this simple algorithm now will generate a random N-state machine 
+random_machine = create_random_machine(1,alphabet) # This will now generate a random 1-state turing machine
+
+# You can now try this out and see that we have indeed created a random 1-state turing machine by
+# print the variable random_machine
+
+# Now... at the start of this file we created a 1-state turing machine using the alphabet 'a','b' and '_' to create a 1-state
+# turing machine that changed all a's to b's, we could maybe try to see if created random 1 state turing machine will at some point
+# give us the machine we created earlier.
+
+random_machine = dict()
+while (random_machine != turing_machine): # We named it turing machine earlier
+    random_machine = create_random_machine(1, ('a','b','_'))
+    print("Looking...looking...")
+print("Found it!")
+
+# Amazing isn't it, so we just created a program, that created random programs, until it ended up by finding the program we had
+# created earlier.
+
+# We can make sure that it is the same program by running it and making sure it does it's job correctly!
+
+run_machine(random_machine,'aabba',0) # Should result in 'bbbbb'
 
 ### Enumerating all possible turing machines
+
+# What if instead of creating a random n-state machine, we tried to enumerate all possible n-state turing machines
+# We need to just modify the random generation algorithm slightly in order to enumerate all of the machines
+
+def enumerate_turing_machines(n_states, alphabet):
+    all_machines = list() # We will store them in a list
+    
+    return all_machines # returning the list once we found them all
 
 ### Trying to find one of our own machines
 
