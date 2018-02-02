@@ -60,7 +60,7 @@ def run_machine(turing_machine, tape, state, verbose=False,limit=100000):
             print(tape)
             print(" "*head + "^")
         #----------------------
-        sym = tape[head] if head<len(tape) else '_' # Take the symbol under the r/w head, if no symbol gives '_' (blank symbol by my arbitrary convention)
+        sym = tape[head] if (head<len(tape) and head>=0) else '_' # Take the symbol under the r/w head, if no symbol gives '_' (blank symbol by my arbitrary convention)
         new_sym, new_state, mov = turing_machine[state][sym] # Take what our transition table gives us
         tape = tape[:head] + new_sym + tape[head+1:] # Writing the symbol
         head += 1 if mov == 'R' else -1 # Position the head accordingly
@@ -295,8 +295,10 @@ random_machine = create_random_machine(1,alphabet) # This will now generate a ra
 # You can now try this out and see that we have indeed created a random 1-state turing machine by
 # print the variable random_machine
 
+### Trying to find one of our own machines
+
 # Now... at the start of this file we created a 1-state turing machine using the alphabet 'a','b' and '_' to create a 1-state
-# turing machine that changed all a's to b's, we could maybe try to see if created random 1 state turing machine will at some point
+# turing machine that changed all a's to b's, we could maybe try to see if creating random 1 state turing machines will at some point
 # give us the machine we created earlier.
 
 random_machine = dict()
@@ -314,14 +316,60 @@ run_machine(random_machine,'aabba',0) # Should result in 'bbbbb'
 
 ### Enumerating all possible turing machines
 
-# What if instead of creating a random n-state machine, we tried to enumerate all possible n-state turing machines
-# We need to just modify the random generation algorithm slightly in order to enumerate all of the machines
+# So instead of enumerating all of the turing machines, lets try enumerating
+# only all 1-state turing machines.
+
+# First of all we will generate all possible transitions for a square of our
+# transition table
+# We have 3 symbols in our alphabet ('a','b','_'), 2 possible states (-1,0) and 2
+# possible movements ('R','L').
+# So for a single square we have 3x2x2 = 12 options.
+
+# After that we have to get all the possible combinations of 3 tuples.
+# As a turing machine is simply a transition table, if we have 1 state, our
+# table will resemble something like this :
+#
+#       a     b    _
+#  0   X1    X2   X3
+
+# So to create all of them we need to enumerate all of the possibilities
+# for X1,X2,X3 where each one individually will be chosen from the possibilities
+# for one square of the matrix. So what we obtain is 12**3 = 1728 possibilities
+# for 1-state turing machines (using ('a','b','_') for alphabet)
+
+# So in order to program it, we need to generate our tuples.
+# Then simply put them in a dictionary
+
+import itertools # we use itertools' optimized function of the cartesian product
+one_square = tuple(itertools.product(('a','b','_'),(-1,0),('R','L'))) # all possibilities for one square of the matrix
+three_squares = tuple(itertools.product(one_square,repeat=3)) # all possibilities for three squares
+all_machines_1 = []
+for t1,t2,t3 in three_squares:
+    machine_t,machine_t[0] = dict(), dict()
+    machine_t[0]['a'], machine_t[0]['b'], machine_t[0]['_'] = t1,t2,t3
+    all_machines_1.append(machine_t)
+
+# lets now try to find our machine again
+print("It is the "+str(all_machines_1.index(turing_machine))+" machine") # This will give the index of our machine in the list of all machines
+
+# Now that we have seen the principle for a 3 letter alphabet and 1 state, we can
+# generalize for n states and a m letter alphabet.
 
 def enumerate_turing_machines(n_states, alphabet):
-    all_machines = list() # We will store them in a list
-    
-    return all_machines # returning the list once we found them all
-
-### Trying to find one of our own machines
+    # We will not store them, as the number of turing machines grows insanely fast and we will easily saturate the computer's memory
+    # To graps the idea, there are 1 728 1-state turing machines, there are 2 985 984 2-state turing machines...
+    n_symboles = len(alphabet) # The number of letters in the alphabet
+    one_square = tuple(itertools.product(alphabet,tuple(range(-1,n_states)),('R','L')))
+    # So now 1 entry of the all_squares tuple, is 1 turing machine, so all thats left is to transform it into a dictionary
+    nb_machines = 0
+    for machine_transitions in itertools.product(one_square,repeat=n_symboles*n_states):
+        i, nb_machines = 0, nb_machines+1
+        nth_machine = dict()
+        for state in range(n_states):
+            nth_machine[state] = dict()
+            for sym in alphabet:
+                nth_machine[state][sym],i = machine_transitions[i],i+1
+        yield nth_machine # More efficient as we are generating insane amount of machines
+    print("Generated "+str(nb_machines)+" machines")
 
 ### Busy beaver
