@@ -48,19 +48,20 @@ turing_machine = \
 
 # So now in order to run this we can use the following algorithm
 
-def run_machine(turing_machine, tape, state, verbose=False,limit=100000):
+def run_machine(turing_machine, tape, blank_symbol='_', verbose=False,limit=100000):
     head = 0 # initialize head
     print("\nInput on tape: "+tape+"\n") # Print input initially
 
     cntr=0
+    state = 0
     
     while (state != -1 and cntr<limit): # While not in the halt state or exceeded interation limit
         #---------------------- Visualation
         if verbose: 
             print(tape)
-            print(" "*head + "^")
+            print(blank_symbol*head + "^")
         #----------------------
-        sym = tape[head] if (head<len(tape) and head>=0) else '_' # Take the symbol under the r/w head, if no symbol gives '_' (blank symbol by my arbitrary convention)
+        sym = tape[head] if (head<len(tape) and head>=0) else blank_symbol # Take the symbol under the r/w head, if no symbol gives '_' (blank symbol by my arbitrary convention)
         new_sym, new_state, mov = turing_machine[state][sym] # Take what our transition table gives us
         tape = tape[:head] + new_sym + tape[head+1:] # Writing the symbol
         head += 1 if mov == 'R' else -1 # Position the head accordingly
@@ -72,7 +73,7 @@ def run_machine(turing_machine, tape, state, verbose=False,limit=100000):
 
 # To see the result of the programme, open in idle and type :
 
-run_machine(turing_machine, "aabaa", 0, verbose=True) # You can save this to a variable if you wish, but the function prints the result so no need here
+run_machine(turing_machine, "aabaa", verbose=True) # You can save this to a variable if you wish, but the function prints the result so no need here
 
 #  - The first argument is the transition matrix encoded with a dictionary
 #  - The second argument is the input on the tape
@@ -120,11 +121,11 @@ palindrome = {
 # In order to test it out :
 print("===========\nTesting palindrome\n==========")
 print("\nTest 1001")
-run_machine(palindrome, "1001", 0) # Should result in an empty tape
+run_machine(palindrome, "1001") # Should result in an empty tape
 print("\nTest 101")
-run_machine(palindrome, "101", 0) # should result in an empty tape
+run_machine(palindrome, "101") # should result in an empty tape
 print("\nTest 1101")
-run_machine(palindrome, "1101", 0) # should result in a non-empty tape
+run_machine(palindrome, "1101") # should result in a non-empty tape
 
 
 # Unary addition
@@ -154,8 +155,8 @@ unary_addition = {
 
 # Testing it out:
 print("="*10 + "\nTesting Unary Addition\n" + "="*10)
-run_machine(unary_addition,"1_1",0) # Should result in "11"
-run_machine(unary_addition,"11_111",0) # Should result in "11111"
+run_machine(unary_addition,"1_1") # Should result in "11"
+run_machine(unary_addition,"11_111") # Should result in "11111"
 
 # Binary increment
 # Here he will be constructing a TM that will increment a binary number
@@ -183,9 +184,9 @@ binary_increment = {
 
 # Lets test it out
 print("="*10 + "\nTesting binary increment\n" + "="*10)
-run_machine(binary_increment,"0",0) # Should result in "1"
-run_machine(binary_increment,"1100",0) # Should result in "1101"
-run_machine(binary_increment,"011",0) # Should result in "100"
+run_machine(binary_increment,"0") # Should result in "1"
+run_machine(binary_increment,"1100") # Should result in "1101"
+run_machine(binary_increment,"011") # Should result in "100"
 
 # Binary decrement
 # So using the same logic if we think about it we got the mirror
@@ -208,9 +209,9 @@ binary_decrement = {
 
 # Lets test it out
 print("="*10 + "\nTesting binary decrement\n" + "="*10)
-run_machine(binary_decrement,"1",0) # Should result in "0"
-run_machine(binary_decrement,"1100",0) # Should result in "1011"
-run_machine(binary_decrement,"011",0) # Should result in "010"
+run_machine(binary_decrement,"1") # Should result in "0"
+run_machine(binary_decrement,"1100") # Should result in "1011"
+run_machine(binary_decrement,"011") # Should result in "010"
 
 # Binary addition
 # Now knowing how to increment and decrement, we should be able to program
@@ -252,9 +253,9 @@ binary_addition = {
 
 # Lets test it out
 print("="*10 + "\nTesting binary addition\n" + "="*10)
-run_machine(binary_addition,"01_10",0) # Should result in "11" (1 + 2)
-run_machine(binary_addition,"001_011",0) # Should result in "100" (1 + 3)
-run_machine(binary_addition,"0110_0011",0) # Should result in "1001" (6 + 3)
+run_machine(binary_addition,"01_10") # Should result in "11" (1 + 2)
+run_machine(binary_addition,"001_011") # Should result in "100" (1 + 3)
+run_machine(binary_addition,"0110_0011") # Should result in "1001" (6 + 3)
 
 # Others ... ?
 
@@ -312,7 +313,7 @@ print("Found it!")
 
 # We can make sure that it is the same program by running it and making sure it does it's job correctly!
 
-run_machine(random_machine,'aabba',0) # Should result in 'bbbbb'
+run_machine(random_machine,'aabba') # Should result in 'bbbbb'
 
 ### Enumerating all possible turing machines
 
@@ -357,7 +358,7 @@ print("It is the "+str(all_machines_1.index(turing_machine))+" machine") # This 
 
 def enumerate_turing_machines(n_states, alphabet):
     # We will not store them, as the number of turing machines grows insanely fast and we will easily saturate the computer's memory
-    # To graps the idea, there are 1 728 1-state turing machines, there are 2 985 984 2-state turing machines...
+    # To grasp the idea, there are 1 728 1-state turing machines, there are 2 985 984 2-state turing machines...
     n_symboles = len(alphabet) # The number of letters in the alphabet
     one_square = tuple(itertools.product(alphabet,tuple(range(-1,n_states)),('R','L')))
     # So now 1 entry of the all_squares tuple, is 1 turing machine, so all thats left is to transform it into a dictionary
@@ -373,3 +374,9 @@ def enumerate_turing_machines(n_states, alphabet):
     print("Generated "+str(nb_machines)+" machines")
 
 ### Busy beaver
+
+# A busy beaver is for a given number of states (using binary alphabet ('0','1')), the turing machine that produces the most number of 1s on the tape starting
+# with a blank tape (only 0s) and halts (very important).
+# So now that we are able to enumerate all turing machines, in order to find the busy beaver for a given state, we would need to test the machines, problem is not
+# all of them stop... Even worse it has been proven mathematically that there is no sure way to know if a turing machine stops...
+# So what we need is to find a stop test that is reliable enough but not too hard so that we can test the output of our turing machines.
