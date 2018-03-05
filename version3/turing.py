@@ -48,25 +48,22 @@ turing_machine = \
 
 # So now in order to run this we can use the following algorithm
 
-def run_machine(turing_machine, tape, blank_symbol='_', verbose=False,limit=100000):
-    head = 0 # initialize head
+def run_machine(turing_machine, tape, blank_symbol='_', verbose=False):
     print("\nInput on tape: "+tape+"\n") # Print input initially
-
-    cntr=0
+    head = 0 # initialize head
     state = 0
-    
-    while (state != -1 and cntr<limit): # While not in the halt state or exceeded interation limit
+    while (state != -1): # While not in the halt state or exceeded interation limit
         #---------------------- Visualation
         if verbose: 
             print(tape)
-            print(blank_symbol*head + "^")
+            print(" "*head + "^")
         #----------------------
-        sym = tape[head] if (head<len(tape) and head>=0) else blank_symbol # Take the symbol under the r/w head, if no symbol gives '_' (blank symbol by my arbitrary convention)
-        new_sym, new_state, mov = turing_machine[state][sym] # Take what our transition table gives us
-        tape = tape[:head] + new_sym + tape[head+1:] # Writing the symbol
+        sym = tape[head] if (head<len(tape) and head>=0) else blank_symbol # Take the symbol under the r/w head, gives the blank symbol given in parameter
+        new_sym, new_state, mov = turing_machine[state][sym]
+        tape = (tape[:head] if head!=-1 else '') + new_sym + tape[head+1:]
+        head = 0 if head==-1 else head
         head += 1 if mov == 'R' else -1 # Position the head accordingly
         state = new_state # Change state
-        cntr+=1
         
     print("Result on tape :\n"+tape)
     return tape
@@ -380,3 +377,57 @@ def enumerate_turing_machines(n_states, alphabet):
 # So now that we are able to enumerate all turing machines, in order to find the busy beaver for a given state, we would need to test the machines, problem is not
 # all of them stop... Even worse it has been proven mathematically that there is no sure way to know if a turing machine stops...
 # So what we need is to find a stop test that is reliable enough but not too hard so that we can test the output of our turing machines.
+
+def quick_halt_test(machine):
+    for state in machine:
+        for sym in machine[state]:
+            if -1 in machine[state][sym]:
+                return True
+    return False
+
+
+def number_of_shifts_halt_test(machine,s_n):
+    """
+    This test constists in running the machine until it surpasses
+    stops or s_n (param) shifts
+
+    This test relies on Tibor Rado's S(n) function (see wikipedia link readme)
+
+    Returns a couple:
+    - first element being a boolean whether it stopped or not
+    - second being the number of one's on the tape
+
+    """
+    head, tape, state, shifts = 0, '', 0, 0
+    while (state != -1 and shifts <= s_n):
+        sym = tape[head] if (head<len(tape) and head >= 0) else '0'
+        new_sym, new_state, mov = machine[state][sym]
+        tape = (tape[:head] if head!=-1 else '') + new_sym + tape[head+1:]
+        head = 0 if head==-1 else head
+        head += 1 if mov == 'R' else -1
+        state = new_state
+        shifts += 1 # increment the count
+
+    return state==-1, tape.count('1') # If the state is equal to -1 then the machine has halted
+                                      # Else the shifts has reached s_n, meaning that machine doesn't stop
+
+def nth_busy_beaver(n,shifts=107): # The value 107 is the value for Tibor Rado's S(n) function for all beavers up to 4 states
+    """
+    This function finds the busy beaver for a certain n using a 
+    very naive method by simply limiting the number of shifts a busy beaver can do.
+    """
+    max_ones,winner  = 0, None
+    for m in enumerate_turing_machines(n,('0','1')):
+        if not quick_halt_test(m):
+            pass
+        else:
+            stops,ones = number_of_shifts_halt_test(m,shifts)
+            if stops and ones > max_ones:
+                max_ones = ones
+                winner = m
+    return max_ones,winner
+
+
+# With this simple naive test, we can find the first 3 busy beavears relatively
+# quickly, but for n's bigger than 3, it becomes insanely laborious because of
+# the amount of machines to test
