@@ -48,11 +48,13 @@ turing_machine = \
 
 # So now in order to run this we can use the following algorithm
 
-def run_machine(turing_machine, tape, blank_symbol='_', verbose=False):
-    print("\nInput on tape: "+tape+"\n") # Print input initially
+def run_machine(turing_machine, tape, blank_symbol='_', verbose=False, limit=107):
+    if verbose:
+        print("\nInput on tape: "+tape+"\n") # Print input initially
     head = 0 # initialize head
     state = 0
-    while (state != -1): # While not in the halt state or exceeded interation limit
+    shifts = 0
+    while (state != -1 and shifts<=limit): # While not in the halt state or exceeded interation limit
         #---------------------- Visualation
         if verbose: 
             print(tape)
@@ -64,9 +66,11 @@ def run_machine(turing_machine, tape, blank_symbol='_', verbose=False):
         head = 0 if head==-1 else head
         head += 1 if mov == 'R' else -1 # Position the head accordingly
         state = new_state # Change state
-        
-    print("Result on tape :\n"+tape)
-    return tape
+        shifts += 1
+
+    if verbose:
+        print("Result on tape :\n"+tape)
+    return tape,state==-1,tape.count('1')
 
 # To see the result of the programme, open in idle and type :
 
@@ -128,32 +132,28 @@ run_machine(palindrome, "1101") # should result in a non-empty tape
 # Unary addition
 # We will now program the unary addition
 # It is quite simple as our program will take a sequence of 1s followed by a
-# blank symbol then another sequence of 1s.
-# So for an input tape "111_11" we should recieve "11111".
-# Note : if a 0 if found the machine will exit exceptionally.
+# blank symbol (here 0) then another sequence of 1s.
+# So for an input tape "111011" we should recieve "11111".
 
 unary_addition = {
     0: {
-        '0': ('0',-1,None),
         '1': ('1',0,'R'),
-        '_': ('1',1,'R')
+        '0': ('1',1,'R')
         },
     1: {
-        '0': ('0',-1,None),
         '1': ('1',1,'R'),
-        '_': ('_',2,'L')
+        '0': ('0',2,'L')
         },
     2: {
-        '0': ('0',-1,None),
-        '1': ('_',-1,None), # The only transition that makes sense
-        '_': ('_',-1,None)
+        '1': ('0',-1,None), # The only transition that makes sense
+        '0': ('0',-1,None)
         }
     }
 
 # Testing it out:
 print("="*10 + "\nTesting Unary Addition\n" + "="*10)
-run_machine(unary_addition,"1_1") # Should result in "11"
-run_machine(unary_addition,"11_111") # Should result in "11111"
+run_machine(unary_addition,"101",'0',True) # Should result in "11"
+run_machine(unary_addition,"110111",'0',True) # Should result in "11111"
 
 # Binary increment
 # Here he will be constructing a TM that will increment a binary number
@@ -378,6 +378,9 @@ def enumerate_turing_machines(n_states, alphabet):
 # all of them stop... Even worse it has been proven mathematically that there is no sure way to know if a turing machine stops...
 # So what we need is to find a stop test that is reliable enough but not too hard so that we can test the output of our turing machines.
 
+import math # for the log function
+import time
+
 def quick_halt_test(machine):
     for state in machine:
         for sym in machine[state]:
@@ -385,49 +388,77 @@ def quick_halt_test(machine):
                 return True
     return False
 
-
-def number_of_shifts_halt_test(machine,s_n):
-    """
-    This test constists in running the machine until it surpasses
-    stops or s_n (param) shifts
-
-    This test relies on Tibor Rado's S(n) function (see wikipedia link readme)
-
-    Returns a couple:
-    - first element being a boolean whether it stopped or not
-    - second being the number of one's on the tape
-
-    """
-    head, tape, state, shifts = 0, '', 0, 0
-    while (state != -1 and shifts <= s_n):
-        sym = tape[head] if (head<len(tape) and head >= 0) else '0'
-        new_sym, new_state, mov = machine[state][sym]
-        tape = (tape[:head] if head!=-1 else '') + new_sym + tape[head+1:]
-        head = 0 if head==-1 else head
-        head += 1 if mov == 'R' else -1
-        state = new_state
-        shifts += 1 # increment the count
-
-    return state==-1, tape.count('1') # If the state is equal to -1 then the machine has halted
-                                      # Else the shifts has reached s_n, meaning that machine doesn't stop
-
 def nth_busy_beaver(n,shifts=107): # The value 107 is the value for Tibor Rado's S(n) function for all beavers up to 4 states
     """
     This function finds the busy beaver for a certain n using a 
     very naive method by simply limiting the number of shifts a busy beaver can do.
     """
-    max_ones,winner  = 0, None
+    ts = time.time()
+    max_ones,winner,nb_of_winners  = 0, None, 0
+    cpt, total = 0 ,(4*(n+1))**(2*n)
     for m in enumerate_turing_machines(n,('0','1')):
         if not quick_halt_test(m):
             pass
         else:
-            stops,ones = number_of_shifts_halt_test(m,shifts)
+            _,stops,ones = run_machine(m,'','0',limit=shifts)
             if stops and ones > max_ones:
                 max_ones = ones
                 winner = m
-    return max_ones,winner
-
+                nb_of_winners = 1
+            elif ones==max_ones:
+                nb_of_winners += 1
+        if (cpt==0 or math.log10(cpt).is_integer()):
+            print('*')
+        cpt+=1
+    print(time.time()-ts)
+    return max_ones,winner,nb_of_winners
 
 # With this simple naive test, we can find the first 3 busy beavears relatively
 # quickly, but for n's bigger than 3, it becomes insanely laborious because of
 # the amount of machines to test
+
+# For test purposes these are commented out but you can test them out if you wish
+# (nb: the values for shifts are the exact s(n) values from the wikipedia page for optimization purposes)
+
+# nb_ones_1, busy_beaver1, nb_win1 = nth_busy_beaver(1,shifts=2)
+
+# nb_ones_2, busy_beaver2, nb_win2 = nth_busy_beaver(2,shifts=6)
+
+# This already takes a bit of time due to the [4(n+1)]^(2n) = 16^6 machines
+nb_ones_3, busy_beaver3, nb_win3 = nth_busy_beaver(3,shifts=21)
+
+# This one would take an all nighter most likely, but it would find it.
+# nb_ones_4, busy_beaver4, nb_win4 = nth_busy_beaver(4)
+
+# For the next busy beaver, considering the current lower bound for s(n) ~= 47 million, 
+# running our function would probably take a couple of human lifetimes on any computer.
+
+#### Universal turing machine
+
+# As we know a universal turing machine executes the turing machine that is encoded on it's tape
+# so we would need to start by being able to encode a turing machine as Alan Turing described it
+# in his 1936 paper "On computable numbers" (https://www.cs.virginia.edu/~robins/Turing_Paper_1936.pdf)
+
+def encode_machine(machine):
+    """
+    Each cell of our transition table will be encoded in the following way:
+
+    [state][scanned symbol][printing symbol][movement][new state]
+
+    where:
+    - the states be encoded with the following code {DA, DAA, DAAA, ...} where qi = D(A^i)
+    - the scanned symbol will be encoded with the following code {D, DC, DCC, ...} where si = D(A^i) given that D = blank_symbol always
+    - the printing symbol will be encoded in the same way as the scanned one
+    - the movemenet will simply represent either R or L.
+    - the new state will be encoded in the same way as the originating state
+
+    So for example, the line (considering a binary alphabet and 0 as the blank symbol):
+
+    {0: {0: ('1',1,'L'), ...}, ...  ==>  q0 blank 1 L q1  ==> DADDCLDAA
+    
+    The different cells being interlaced with semicolons (';')
+    
+    And all of this on alternating squares meaning the sequence DADDCLDAA will actually be D.A.D.D.C.L.D.A.A where '.' will be a special character
+
+    """
+    pass
